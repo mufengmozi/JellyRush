@@ -1,0 +1,11 @@
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\Assembly-CSharp.dll
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\Assembly-CSharp.pdb
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEditor.dll
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEngine.dll
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEngine.UI.dll
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEngine.xml
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEditor.xml
+F:\U3d\Project\jelly RuSH\Temp\UnityVS_bin\Debug\UnityEngine.UI.xml
+F:\U3d\Project\jelly RuSH\obj\Debug\UnityVS.jelly RuSH.CSharp.csprojResolveAssemblyReference.cache
+F:\U3d\Project\jelly RuSH\obj\Debug\Assembly-CSharp.dll
+F:\U3d\Project\jelly RuSH\obj\Debug\Assembly-CSharp.pdb

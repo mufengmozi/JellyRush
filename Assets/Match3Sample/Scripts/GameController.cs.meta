@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 8e8e21f1805d043e78cfeb4656c89b2e
+timeCreated: 1431616308
+licenseType: Pro
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - SelectedJewel: {instanceID: 0}
+  - SwapSound: {instanceID: 0}
+  - explodeSound: {instanceID: 0}
+  - match3Sound: {instanceID: 0}
+  - Rock: {instanceID: 0}
+  - flash: {fileID: 2800000, guid: 43afa08ce1a17469186b0d828cb18665, type: 3}
+  - TheBoard: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
