@@ -209,7 +209,13 @@ public class GameController : MonoBehaviour
                 case "needToDropJewels":
                     text[i].text = text[i].name + ":" + needToDropJewels;
                     break;
-                case "swapping":
+                case "jewelBx":
+                    text[i].text = text[i].name + ":" + swapping.jewelBx;
+                    break;
+                case "jewelBy":
+                    text[i].text = text[i].name + ":" + swapping.jewelBy;
+                    break;
+                case "swapping.isActive":
                     text[i].text = text[i].name + ":" + swapping.isActive;
                     break;
             }
@@ -722,7 +728,7 @@ public class GameController : MonoBehaviour
                 CheckForCascades();
                 needToCheckCascades = false;
             }
-            Debug.Log(swapping.jewelBx + "" + swapping.jewelBy);
+            //Debug.Log(swapping.jewelBx + "" + swapping.jewelBy);
             if (validateSwap)
             { 			// 交换以后验证宝石位置是否存在连3
                 int count = CountMatch3();
@@ -744,7 +750,7 @@ public class GameController : MonoBehaviour
                 theBoardState = BState.PLAYING;
         }
 
-        //if (theBoardState != BState.PLAYING && theBoardState != BState.SWAPPING) return; // 判断用户是否可以进行交互
+        if (theBoardState != BState.PLAYING && theBoardState != BState.SWAPPING) return; // 判断用户是否可以进行交互
 
         if (theBoardState == BState.PLAYING)
         { 	// Increase the hint timer if there's no action on the board
@@ -775,12 +781,12 @@ public class GameController : MonoBehaviour
             }
         }
 
-        if (swapping.twiceClick == true && swapping.isActive)
-        {
-            swapping.jewelBx = mouseClickX;
-            swapping.jewelBy = mouseClickY;
-            Debug.Log("di san ci"+swapping.jewelBx + "" + swapping.jewelBy);
-        }
+        //if (swapping.twiceClick == true && swapping.isActive)
+        //{
+        //    swapping.jewelBx = mouseClickX;
+        //    swapping.jewelBy = mouseClickY;
+        //    //Debug.Log("di san ci"+swapping.jewelBx + "" + swapping.jewelBy);
+        //}
 
         if (canSwap && mouseClickX > -1 && Input.GetMouseButton(0))
         { // Start to swap if some jewel is clicked
@@ -796,7 +802,7 @@ public class GameController : MonoBehaviour
             }
             else
             {
-                Debug.Log("di si ci"+swapping.jewelBx + "" + swapping.jewelBy);
+                //Debug.Log("di si ci"+swapping.jewelBx + "" + swapping.jewelBy);
                 swapping.jewelBx = mouseClickX;
                 swapping.jewelBy = mouseClickY;
 
@@ -856,7 +862,7 @@ public class GameController : MonoBehaviour
         {
             //do something when the jewels are moving
         }
-        Debug.Log("di wu ci"+swapping.jewelBx + "" + swapping.jewelBy);
+        //Debug.Log("di wu ci"+swapping.jewelBx + "" + swapping.jewelBy);
     }
     /// <summary>
     /// 随机显示一个提醒宝石
@@ -893,7 +899,7 @@ public class GameController : MonoBehaviour
     /// <param name="swap"></param>
     private void SwapJewels(theSwap swap)
     {
-        Debug.Log("di er ci"+swapping.jewelBx + "" + swapping.jewelBy);
+        //Debug.Log("di er ci"+swapping.jewelBx + "" + swapping.jewelBy);
         int dirA, dirB;//定义两个宝石的交换方向：1左；2右；3上；4下
         bool verifyRock = false;//判断是否是个石头
         bool[,] markedForRemoval = new bool[boardSize, boardSize];
@@ -921,15 +927,6 @@ public class GameController : MonoBehaviour
 
         Jewel objIn;
         //如果这个宝石的tag是石头、则verifyRock=true
-        if (jewelMapPosition[swap.jewelAx, swap.jewelAy].tag == "Rock" || jewelMapPosition[swap.jewelBx, swap.jewelBy].tag == "Rock")
-        {
-            verifyRock = true;
-        }
-        else
-        {
-            verifyRock = false;
-        }
-
         if (jewelMapPosition[swap.jewelAx, swap.jewelAy].tag == "Rock" || jewelMapPosition[swap.jewelBx, swap.jewelBy].tag == "Rock")
         {
             verifyRock = true;
@@ -1210,7 +1207,7 @@ public class GameController : MonoBehaviour
                 //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
                 for (int i = 0; i <= 4; i++)
                 {
-                    Debug.Log(i);
+                    //Debug.Log(i);
                     if (i == 0)
                     {
                         if (IsJewelAt(px, py) & markedForRemoval[px, py] == false)
