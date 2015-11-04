@@ -1170,19 +1170,13 @@ public class GameController : MonoBehaviour
                 markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(px, i))
-                    {
-                        if (markedForRemoval[px, i] == false)
-                            markedForRemoval[px, i] = true;
-                    }
+                    if (IsJewelAt(px, i) & markedForRemoval[px, i] == false)
+                        markedForRemoval[px, i] = true;
                 }
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(i, py))
-                    {
-                        if (markedForRemoval[i, px] == false)
-                            markedForRemoval[i, px] = true;
-                    }
+                    if (IsJewelAt(i, py) & markedForRemoval[i, px] == false)
+                        markedForRemoval[i, px] = true;
                 }
             }
             if (SpeB == 1)
@@ -1209,8 +1203,8 @@ public class GameController : MonoBehaviour
                 int py1 = UnityEngine.Random.Range(1, boardSize - 2);
                 int px2 = UnityEngine.Random.Range(1, boardSize - 2);
                 int py2 = UnityEngine.Random.Range(1, boardSize - 2);
-                markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
-                markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
+                //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
+                //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
                 for (int i = 0; i <= 4; i++)
                 {
                     //Debug.Log(i);
@@ -2931,51 +2925,36 @@ public class GameController : MonoBehaviour
             {
                 if (i == 0)
                 {
-                    if (IsJewelAt(px, py))
-                    {
-                        if(markedForRemoval[px, py] == false)
+                    if (IsJewelAt(px, py) & markedForRemoval[px, py] == false)
                         markedForRemoval[px, py] = true;
-                    }
                     else
                         continue;
                 }
                 if (i == 1)
                 {
-                    if (IsJewelAt(px + 1, py))
-                    {
-                        if(markedForRemoval[px + 1, py] == false)
+                    if (IsJewelAt(px + 1, py) & markedForRemoval[px + 1, py] == false)
                         markedForRemoval[px + 1, py] = true;
-                    }
                     else
                         continue;
                 }
                 if (i == 2)
                 {
-                    if (IsJewelAt(px - 1, py))
-                    {
-                        if( markedForRemoval[px - 1, py] == false)
+                    if (IsJewelAt(px - 1, py) & markedForRemoval[px - 1, py] == false)
                         markedForRemoval[px - 1, py] = true;
-                    }
                     else
                         continue;
                 }
                 if (i == 3)
                 {
-                    if (IsJewelAt(px, py + 1))
-                    { 
-                        if (markedForRemoval[px, py + 1] == false)
+                    if (IsJewelAt(px, py + 1) & markedForRemoval[px, py + 1] == false)
                         markedForRemoval[px, py + 1] = true;
-                    }
                     else
                         continue;
                 }
                 if (i == 4)
                 {
-                    if (IsJewelAt(px, py - 1))
-                    {
-                        if (markedForRemoval[px, py - 1] == false)
-                            markedForRemoval[px, py - 1] = true;
-                    }
+                    if (IsJewelAt(px, py - 1) & markedForRemoval[px, py - 1] == false)
+                        markedForRemoval[px, py - 1] = true;
                     else
                         continue;
                 }
