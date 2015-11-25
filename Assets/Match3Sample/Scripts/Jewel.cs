@@ -160,6 +160,14 @@ public class Jewel : MonoBehaviour
             {
                 targetPosition = new Vector2(transform.localPosition.x, transform.localPosition.y - Slots);
             }
+            if (direction == 5)//右下拉
+            {
+                targetPosition = new Vector2(transform.localPosition.x - 1, transform.localPosition.y + 1);
+            }
+            if (direction == 6)//左下拉
+            {
+                targetPosition = new Vector2(transform.localPosition.x + 1, transform.localPosition.y + 1);
+            }
 
             transform.localPosition = new Vector3(startPosition.x, startPosition.y, transform.localPosition.z);
             moving = true;
