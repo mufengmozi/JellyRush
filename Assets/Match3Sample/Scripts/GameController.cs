@@ -123,8 +123,8 @@ public class GameController : MonoBehaviour
     #endregion
 
     public GameObject Rock;						//Can be used as Rock or special item 
-    public GameObject[] Obs;
-    public GameObject[] planes;                 //这个是底部的显示
+    public GameObject[] Obs;                     //这个是障碍物
+    public GameObject[] planes;                 //这个是底部的面板
     public GameObject[] jewels;                //这是用在游戏上的宝石至少需要3种不同的
     public GameObject[] jewelsSpe;                 //这是用在游戏上的宝石至少需要3种不同的
     /// <summary>
@@ -132,7 +132,7 @@ public class GameController : MonoBehaviour
     /// </summary>
     public static GameObject[,] jewelMapPosition;  //Hold's the jewels virtual position 
     public static GameObject[,] planeMapPosition;  //Hold's the plane virtual position 
-    public static GameObject[,] obsMapPosition;
+    public static GameObject[,] obsMapPosition;//Hold's the obstruction virtual position
     private struct theSwap
     {				//helper for the swap I grab this part of the code from some websites
         public bool twiceClick;				//handles the double click
@@ -195,7 +195,7 @@ public class GameController : MonoBehaviour
             switch (text[i].name)
             {
                 case "isActive":
-                    text[i].text = text[i].name +":"+ isActive;
+                    text[i].text = text[i].name + ":" + isActive;
                     break;
                 case "canSwap":
                     text[i].text = text[i].name + ":" + canSwap;
@@ -221,6 +221,50 @@ public class GameController : MonoBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// 定义面板
+    /// </summary>
+    public void Reset()
+    {
+        xmlpath = Application.dataPath + "/Match3Sample/Scripts/GateCon.xml";
+        Can = GameObject.Find("Canvas");
+        if (boardSize < 3) boardSize = 8;
+        theBoardState = BState.RESETING;
+        jewelMapPosition = new GameObject[boardSize, boardSize];
+        planeMapPosition = new GameObject[boardSize, boardSize];
+        obsMapPosition = new GameObject[boardSize, boardSize];
+        mouseClickY = -1;
+        mouseClickX = -1;
+        CurrentlyMovingJewels = 0;
+        needToDropJewels = false;
+        totalRemovedJewels = 0;
+        validateSwap = false;
+        hintTimer = 0;
+        hintDelay = 5;
+        baseScore = 100;
+        longestChain = 0;
+        isActive = true;
+        canSwap = true;
+        hintJewels = new List<GameObject>(16);
+        jewelRemains = new List<GameObject>(16);
+        FourHJewels = new List<GameObject>(16);
+        FourVJewels = new List<GameObject>(16);
+        FiveJewels = new List<GameObject>(16);
+        SquareJewels = new List<GameObject>(16);
+        TLJewels = new List<GameObject>(16);
+
+        // Randomize the jewels
+        do
+        {
+            ResetPlane();
+            ResetObs();
+            ResetJewelss();
+        }
+        while ((movesLeft = HowManyMovesLeft()) == 0);
+
+        theBoardState = BState.PLAYING;
+    }
     /// <summary>
     /// 定义好面板后开始给里边填充宝石
     /// </summary>
@@ -230,7 +274,7 @@ public class GameController : MonoBehaviour
         Array arr = gate.Split(';');
         string line;
         boardSizex = arr.Length;
-        GameObject pl ;
+        GameObject pl;
         GameObject objectType1;
         GameObject planePrefab;
         for (int i = 0; i < arr.Length; i++)
@@ -240,9 +284,9 @@ public class GameController : MonoBehaviour
             {
                 line = m.ToString().Substring(m.ToString().IndexOf("[") + 1, (m.ToString().IndexOf("]") - m.ToString().IndexOf("[")) - 1);
                 Array arrl = line.Split(',');
-                for (int j = arrl.Length-1; j >= 0; j--)
+                for (int j = arrl.Length - 1; j >= 0; j--)
                 {
-                    if (arrl.GetValue(arrl.Length-1-j).ToString() != "0")
+                    if (arrl.GetValue(arrl.Length - 1 - j).ToString() != "0")
                     {
                         pl = (GameObject)planeMapPosition[j, i];
                         if (pl == null)
@@ -252,7 +296,6 @@ public class GameController : MonoBehaviour
                             //获取到宝石后实例化一个宝石预设体
                             planePrefab = (GameObject)Instantiate(objectType1, new Vector3(j, i, 0.01f), planes[0].transform.localRotation);
                             planeMapPosition[j, i] = planePrefab;//放入对应坐标
-
                             planePrefab.transform.parent = TheBoard;
                             planePrefab.transform.localPosition = new Vector3(j, i, 0.01f);
                         }
@@ -283,7 +326,7 @@ public class GameController : MonoBehaviour
                 Array arrl = line.Split(',');
                 for (int j = arrl.Length - 1; j >= 0; j--)
                 {
-                    if (arrl.GetValue(arrl.Length - 1 - j).ToString().Length ==3)
+                    if (arrl.GetValue(arrl.Length - 1 - j).ToString().Length == 3)
                     {
                         obs = (GameObject)obsMapPosition[j, i];
                         if (obs == null)
@@ -331,8 +374,8 @@ public class GameController : MonoBehaviour
                 if (j == null && pl != null && ob == null)
                 {
                     // 排布的时候要避免出现3个的情况
-                    
-                    GameObject objectType1 = jewels[UnityEngine.Random.Range(0, jewels.Length-3)];//随机添加一个宝石
+
+                    GameObject objectType1 = jewels[UnityEngine.Random.Range(0, jewels.Length - 3)];//随机添加一个宝石
                     //获取到宝石后实例化一个宝石预设体
                     GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
                     jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
@@ -354,7 +397,9 @@ public class GameController : MonoBehaviour
             }
         }
     }
-
+    /// <summary>
+    /// 定义好面板后开始给里边填充宝石
+    /// </summary>
     private void ResetJewelss()
     {
         string gate = XmlHelper.FindByName(xmlpath, "Map");
@@ -378,15 +423,15 @@ public class GameController : MonoBehaviour
                     {
                         if (arrl.GetValue(no).ToString().Length == 4)
                         {
-                            int JewelType=Int32.Parse(arrl.GetValue(no).ToString().Substring(3, arrl.GetValue(no).ToString().Length - 3));
-                            int SpeType=Int32.Parse(arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 3));
+                            int JewelType = Int32.Parse(arrl.GetValue(no).ToString().Substring(3, arrl.GetValue(no).ToString().Length - 3));
+                            int SpeType = Int32.Parse(arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 3));
                             MadeSpe(j, i, JewelType, SpeType);
                         }
                         else
                         {
                             if (arrl.GetValue(no).ToString() == "3")
                             {
-                                objectType1 = jewels[3];//随机添加一个宝石
+                                objectType1 = jewels[3];//添加一个特定宝石
                             }
                             else
                             {
@@ -415,289 +460,6 @@ public class GameController : MonoBehaviour
         }
     }
 
-    #region 暂时不用的面板分布系统
-    private void ResetJewelse()
-    {
-        string gate = XmlHelper.FindByName(xmlpath, "Map");
-        Array arr = gate.Split(';');
-        string line;
-        GameObject je;//用于记录宝石的位置
-        GameObject pl;//用于记录面板的位置
-        GameObject obs;//用于记录障碍的位置
-        GameObject objectType1;//记录宝石的种类
-        GameObject jewelPrefab;
-        GameObject objectType2;
-        GameObject jewelPrefab2;
-        GameObject obsType1 ;
-        GameObject obsPrefab ;
-        for (int j = 0; j < arr.Length; j++)
-        {
-            Match m = Regex.Match(arr.GetValue(j).ToString(), @"\[([\s\S]*?)\]");
-            if (m.Success)
-            {
-                line = m.ToString().Substring(m.ToString().IndexOf("[") + 1, (m.ToString().IndexOf("]") - m.ToString().IndexOf("[")) - 1);
-                Array arrl = line.Split(',');
-                for (int i = arrl.Length - 1; i >= 0; i--)
-                {
-                    je = (GameObject)jewelMapPosition[i, j];
-                    pl= (GameObject)planeMapPosition[i, j];
-                    obs = (GameObject)obsMapPosition[i, j];
-                    int no = arrl.Length - 1 - i;
-                    if (arrl.GetValue(no).ToString().Substring(arrl.GetValue(no).ToString().Length - 1, 1) != "0")
-                    {
-                        if (je == null && pl != null)
-                        {
-                            // 排布的时候要避免出现3个的情况
-                            objectType1 = jewels[UnityEngine.Random.Range(0, jewels.Length)];//随机添加一个宝石
-                            //获取到宝石后实例化一个宝石预设体
-                            jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(i, j, 0), jewels[0].transform.localRotation);
-                            jewelMapPosition[i, j] = jewelPrefab;//放入对应坐标
-                            jewelPrefab.transform.parent = TheBoard;
-                            jewelPrefab.transform.localPosition = new Vector3(i, j, 0);
-                            //循环判断连3情况
-                            while (true)
-                            {
-                                if (CountMatch3() == 0) break;//判断是否存在连3的情况，不存在跳出循环，添加下一组
-                                //存在连3情况：销毁当前宝石，重新实例化一个新宝石
-                                Destroy(jewelMapPosition[i, j]);
-                                objectType2 = jewels[UnityEngine.Random.Range(0, jewels.Length)];
-                                jewelPrefab2 = (GameObject)Instantiate(objectType2, new Vector3(i, j, 0), jewels[0].transform.localRotation);
-                                je = jewelPrefab2;
-                                jewelPrefab2.transform.parent = TheBoard;
-                                jewelPrefab2.transform.localPosition = new Vector3(i, j, 0);
-                            }
-                        }
-                    }
-                    
-                    switch (arrl.GetValue(no).ToString().Length)
-                    {
-                        case 2:
-                            {
-                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 1) != "0")
-                                {
-                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
-                                }
-                                break;
-                            }
-                        case 3:
-                            {
-                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 2) != "0")
-                                {
-                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 2) != "0")
-                                {
-                                    obsType1 = Obs[0];
-                                    obsPrefab = (GameObject)Instantiate(obsType1, new Vector3(i, j, -0.01f), Obs[0].transform.localRotation);
-                                    obs = obsPrefab;//放入对应坐标
-
-                                    obsPrefab.transform.parent = TheBoard;
-                                    obsPrefab.transform.localPosition = new Vector3(i, j, -0.01f);
-                                }
-                                break;
-                            }
-                        case 4:
-                            {
-                                if (arrl.GetValue(no).ToString().Substring(2, arrl.GetValue(no).ToString().Length - 3) != "0")
-                                {
-                                    pl = (GameObject)planeMapPosition[i, j];
-                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 3) != "0")
-                                {
-
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 3) != "0")
-                                {
-
-                                }
-                                break;
-                            }
-                        case 5:
-                            {
-                                if (arrl.GetValue(no).ToString().Substring(3, arrl.GetValue(no).ToString().Length - 4) != "0")
-                                {
-                                    pl = (GameObject)planeMapPosition[i, j];
-                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(2, arrl.GetValue(no).ToString().Length - 4) != "0")
-                                {
-
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 4) != "0")
-                                {
-
-                                }
-                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 4) != "0")
-                                {
-
-                                }
-                                break;
-                            }
-                    }
-                }
-            }
-        }
-    }
-    #endregion
-
-    /// <summary>
-    /// 定义面板
-    /// </summary>
-    public void Reset()
-    {
-        xmlpath = Application.dataPath + "/Match3Sample/Scripts/GateCon.xml";
-        Can = GameObject.Find("Canvas");
-        if (boardSize < 3) boardSize = 8;
-        theBoardState = BState.RESETING;
-        jewelMapPosition = new GameObject[boardSize, boardSize];
-        planeMapPosition = new GameObject[boardSize, boardSize];
-        obsMapPosition = new GameObject[boardSize, boardSize];
-        mouseClickY = -1;
-        mouseClickX = -1;
-        CurrentlyMovingJewels = 0;
-        needToDropJewels = false;
-        totalRemovedJewels = 0;
-        validateSwap = false;
-        hintTimer = 0;
-        hintDelay = 5;
-        baseScore = 100;
-        longestChain = 0;
-        isActive = true;
-        canSwap = true;
-        hintJewels = new List<GameObject>(16);
-        jewelRemains = new List<GameObject>(16);
-        FourHJewels = new List<GameObject>(16);
-        FourVJewels = new List<GameObject>(16);
-        FiveJewels = new List<GameObject>(16);
-        SquareJewels = new List<GameObject>(16);
-        TLJewels = new List<GameObject>(16);
-
-        // Randomize the jewels
-        do
-        {
-            ResetPlane();
-            ResetObs();
-            ResetJewelss();
-        }
-        while ((movesLeft = HowManyMovesLeft()) == 0);
-
-        theBoardState = BState.PLAYING;
-    }
-    /// <summary>
-    /// 消除该种类的一定数量的宝石
-    /// </summary>
-    /// <param name="tagType">宝石种类</param>
-    /// <param name="howMuch">数量</param>
-    public void DestroyJewelType(string tagType, int howMuch)
-    {
-        // Destroy the old jewels
-        int isRemoveJewel = 0;
-
-        if (howMuch == 0)
-        {
-            for (int y = 0; y < boardSize; y++)
-            {
-                for (int x = 0; x < boardSize; x++)
-                {
-                    if (IsJewelAt(x, y))
-                    {
-                        if (jewelMapPosition[x, y].tag == tagType)
-                        {
-                            RemoveJewelAt(x, y);
-                            isRemoveJewel++;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            for (int y = 0; y < boardSize; y++)
-            {
-                for (int x = 0; x < boardSize; x++)
-                {
-                    if (IsJewelAt(x, y))
-                    {
-                        if (jewelMapPosition[x, y].tag == tagType && isRemoveJewel < howMuch)
-                        {
-                            RemoveJewelAt(x, y);
-                            isRemoveJewel++;
-                        }
-                    }
-                }
-            }
-        }
-
-
-        if (isRemoveJewel > 0)
-        {  //Was something removed?
-            needToDropJewels = true;
-            delayDrop = 0.75f;//0.75f;
-            canSwap = false;
-            GetComponent<AudioSource>().PlayOneShot(explodeSound);
-            CameraShake.shakeFor(0.5f, 0.1f); //Shake the screen
-            flashIt = true;
-        }
-
-    }
-    /// <summary>
-    /// 当没有可以移动的宝石的时候
-    /// 重置宝石
-    /// </summary>
-    private void PopulateWithNewJewels()
-    {
-        CurrentlyMovingJewels = 0;
-        theBoardState = BState.PLAYING;
-        needToDropJewels = false;
-        canSwap = true;
-
-        // Destroy the old jewels
-        for (int y = 0; y < boardSize; y++)
-        {
-            for (int x = 0; x < boardSize; x++)
-            {
-                if (IsJewelAt(x, y))
-                {
-                    GameObject j = (GameObject)jewelMapPosition[x, y];
-                    Material ma = j.GetComponent<Renderer>().material;
-                    if (ma.mainTexture.name == "Jewels")
-                    {
-                        Jewel jj = j.gameObject.GetComponent<Jewel>();
-                        jewelMapPosition[x, y] = null;
-                        jj.Die();
-                        jewelRemains.Add(j);
-                    }
-                }
-            }
-        }
-        GetComponent<AudioSource>().PlayOneShot(explodeSound);
-
-        // Randomize new jewels
-        do
-        {
-            ResetJewels();
-        }
-        while ((movesLeft = HowManyMovesLeft()) == 0);
-
-        // Hide them from the view, and start an animation that drops down the
-        // jewels, piece by piece
-        for (int y = 0; y < boardSize; y++)
-        {
-            for (int x = 0; x < boardSize; x++)
-            {
-                GameObject pl = (GameObject)planeMapPosition[x, y];
-                GameObject ob = (GameObject)obsMapPosition[x, y];
-                if (pl != null && ob == null)
-                {
-                    GameObject j = jewelMapPosition[x, y];
-                    Jewel jj = j.gameObject.GetComponent<Jewel>();
-                    j.transform.localPosition = new Vector3(j.transform.localPosition.x, j.transform.localPosition.y - boardSize, j.transform.localPosition.z);
-                    jj.Move(3, boardSize);
-                }
-            }
-        }
-    }
     /// <summary>
     /// 逻辑流程
     /// </summary>
@@ -729,7 +491,7 @@ public class GameController : MonoBehaviour
                 needToCheckCascades = false;
             }
             //Debug.Log(swapping.jewelBx + "" + swapping.jewelBy);
-            if (validateSwap)
+            if (validateSwap)//出现了交换情况
             { 			// 交换以后验证宝石位置是否存在连3
                 int count = CountMatch3();
                 if (count == 0)
@@ -740,7 +502,7 @@ public class GameController : MonoBehaviour
                 }
                 else
                 {
-                    RemoveTriplets();
+                    RemoveTriplets(count);
                 }
                 validateSwap = false;
             }
@@ -864,6 +626,247 @@ public class GameController : MonoBehaviour
         }
         //Debug.Log("di wu ci"+swapping.jewelBx + "" + swapping.jewelBy);
     }
+
+    #region 暂时不用的面板分布系统
+    private void ResetJewelse()
+    {
+        string gate = XmlHelper.FindByName(xmlpath, "Map");
+        Array arr = gate.Split(';');
+        string line;
+        GameObject je;//用于记录宝石的位置
+        GameObject pl;//用于记录面板的位置
+        GameObject obs;//用于记录障碍的位置
+        GameObject objectType1;//记录宝石的种类
+        GameObject jewelPrefab;
+        GameObject objectType2;
+        GameObject jewelPrefab2;
+        GameObject obsType1;
+        GameObject obsPrefab;
+        for (int j = 0; j < arr.Length; j++)
+        {
+            Match m = Regex.Match(arr.GetValue(j).ToString(), @"\[([\s\S]*?)\]");
+            if (m.Success)
+            {
+                line = m.ToString().Substring(m.ToString().IndexOf("[") + 1, (m.ToString().IndexOf("]") - m.ToString().IndexOf("[")) - 1);
+                Array arrl = line.Split(',');
+                for (int i = arrl.Length - 1; i >= 0; i--)
+                {
+                    je = (GameObject)jewelMapPosition[i, j];
+                    pl = (GameObject)planeMapPosition[i, j];
+                    obs = (GameObject)obsMapPosition[i, j];
+                    int no = arrl.Length - 1 - i;
+                    if (arrl.GetValue(no).ToString().Substring(arrl.GetValue(no).ToString().Length - 1, 1) != "0")
+                    {
+                        if (je == null && pl != null)
+                        {
+                            // 排布的时候要避免出现3个的情况
+                            objectType1 = jewels[UnityEngine.Random.Range(0, jewels.Length)];//随机添加一个宝石
+                            //获取到宝石后实例化一个宝石预设体
+                            jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(i, j, 0), jewels[0].transform.localRotation);
+                            jewelMapPosition[i, j] = jewelPrefab;//放入对应坐标
+                            jewelPrefab.transform.parent = TheBoard;
+                            jewelPrefab.transform.localPosition = new Vector3(i, j, 0);
+                            //循环判断连3情况
+                            while (true)
+                            {
+                                if (CountMatch3() == 0) break;//判断是否存在连3的情况，不存在跳出循环，添加下一组
+                                //存在连3情况：销毁当前宝石，重新实例化一个新宝石
+                                Destroy(jewelMapPosition[i, j]);
+                                objectType2 = jewels[UnityEngine.Random.Range(0, jewels.Length)];
+                                jewelPrefab2 = (GameObject)Instantiate(objectType2, new Vector3(i, j, 0), jewels[0].transform.localRotation);
+                                je = jewelPrefab2;
+                                jewelPrefab2.transform.parent = TheBoard;
+                                jewelPrefab2.transform.localPosition = new Vector3(i, j, 0);
+                            }
+                        }
+                    }
+
+                    switch (arrl.GetValue(no).ToString().Length)
+                    {
+                        case 2:
+                            {
+                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 1) != "0")
+                                {
+                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
+                                }
+                                break;
+                            }
+                        case 3:
+                            {
+                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 2) != "0")
+                                {
+                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 2) != "0")
+                                {
+                                    obsType1 = Obs[0];
+                                    obsPrefab = (GameObject)Instantiate(obsType1, new Vector3(i, j, -0.01f), Obs[0].transform.localRotation);
+                                    obs = obsPrefab;//放入对应坐标
+
+                                    obsPrefab.transform.parent = TheBoard;
+                                    obsPrefab.transform.localPosition = new Vector3(i, j, -0.01f);
+                                }
+                                break;
+                            }
+                        case 4:
+                            {
+                                if (arrl.GetValue(no).ToString().Substring(2, arrl.GetValue(no).ToString().Length - 3) != "0")
+                                {
+                                    pl = (GameObject)planeMapPosition[i, j];
+                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 3) != "0")
+                                {
+
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 3) != "0")
+                                {
+
+                                }
+                                break;
+                            }
+                        case 5:
+                            {
+                                if (arrl.GetValue(no).ToString().Substring(3, arrl.GetValue(no).ToString().Length - 4) != "0")
+                                {
+                                    pl = (GameObject)planeMapPosition[i, j];
+                                    pl.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Plane/square");
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(2, arrl.GetValue(no).ToString().Length - 4) != "0")
+                                {
+
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(1, arrl.GetValue(no).ToString().Length - 4) != "0")
+                                {
+
+                                }
+                                if (arrl.GetValue(no).ToString().Substring(0, arrl.GetValue(no).ToString().Length - 4) != "0")
+                                {
+
+                                }
+                                break;
+                            }
+                    }
+                }
+            }
+        }
+    }
+    #endregion
+    /// <summary>
+    /// 消除该种类的一定数量的宝石
+    /// </summary>
+    /// <param name="tagType">宝石种类</param>
+    /// <param name="howMuch">数量</param>
+    public void DestroyJewelType(string tagType, int howMuch)
+    {
+        // Destroy the old jewels
+        int isRemoveJewel = 0;
+
+        if (howMuch == 0)
+        {
+            for (int y = 0; y < boardSize; y++)
+            {
+                for (int x = 0; x < boardSize; x++)
+                {
+                    if (IsJewelAt(x, y))
+                    {
+                        if (jewelMapPosition[x, y].tag == tagType)
+                        {
+                            RemoveJewelAt(x, y);
+                            isRemoveJewel++;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int y = 0; y < boardSize; y++)
+            {
+                for (int x = 0; x < boardSize; x++)
+                {
+                    if (IsJewelAt(x, y))
+                    {
+                        if (jewelMapPosition[x, y].tag == tagType && isRemoveJewel < howMuch)
+                        {
+                            RemoveJewelAt(x, y);
+                            isRemoveJewel++;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        if (isRemoveJewel > 0)
+        {  //Was something removed?
+            needToDropJewels = true;
+            delayDrop = 0.75f;//0.75f;
+            canSwap = false;
+            GetComponent<AudioSource>().PlayOneShot(explodeSound);
+            CameraShake.shakeFor(0.5f, 0.1f); //Shake the screen
+            flashIt = true;
+        }
+
+    }
+    /// <summary>
+    /// 当没有可以移动的宝石的时候
+    /// 重置宝石
+    /// </summary>
+    private void PopulateWithNewJewels()
+    {
+        CurrentlyMovingJewels = 0;
+        theBoardState = BState.PLAYING;
+        needToDropJewels = false;
+        canSwap = true;
+
+        // Destroy the old jewels
+        for (int y = 0; y < boardSize; y++)
+        {
+            for (int x = 0; x < boardSize; x++)
+            {
+                if (IsJewelAt(x, y))
+                {
+                    GameObject j = (GameObject)jewelMapPosition[x, y];
+                    Material ma = j.GetComponent<Renderer>().material;
+                    if (ma.mainTexture.name == "Jewels")
+                    {
+                        Jewel jj = j.gameObject.GetComponent<Jewel>();
+                        jewelMapPosition[x, y] = null;
+                        jj.Die();
+                        jewelRemains.Add(j);
+                    }
+                }
+            }
+        }
+        GetComponent<AudioSource>().PlayOneShot(explodeSound);
+
+        // Randomize new jewels
+        do
+        {
+            ResetJewels();
+        }
+        while ((movesLeft = HowManyMovesLeft()) == 0);
+
+        // Hide them from the view, and start an animation that drops down the
+        // jewels, piece by piece
+        for (int y = 0; y < boardSize; y++)
+        {
+            for (int x = 0; x < boardSize; x++)
+            {
+                GameObject pl = (GameObject)planeMapPosition[x, y];
+                GameObject ob = (GameObject)obsMapPosition[x, y];
+                if (pl != null && ob == null)
+                {
+                    GameObject j = jewelMapPosition[x, y];
+                    Jewel jj = j.gameObject.GetComponent<Jewel>();
+                    j.transform.localPosition = new Vector3(j.transform.localPosition.x, j.transform.localPosition.y - boardSize, j.transform.localPosition.z);
+                    jj.Move(3, boardSize);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// 随机显示一个提醒宝石
     /// </summary>
@@ -1080,12 +1083,12 @@ public class GameController : MonoBehaviour
             {
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(swap.jewelBx, i) & markedForRemoval[swap.jewelBx, i] == false)
+                    if (IsJewelAt(swap.jewelBx, i) && markedForRemoval[swap.jewelBx, i] == false)
                         markedForRemoval[swap.jewelBx, i] = true;
                 }
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(i, swap.jewelBy) & markedForRemoval[i, swap.jewelBy] == false)
+                    if (IsJewelAt(i, swap.jewelBy) && markedForRemoval[i, swap.jewelBy] == false)
                         markedForRemoval[i, swap.jewelBy] = true;
                 }
             }
@@ -1115,12 +1118,12 @@ public class GameController : MonoBehaviour
                 int py = UnityEngine.Random.Range(0, boardSize - 1);
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(px, i) & markedForRemoval[px, i] == false)
+                    if (IsJewelAt(px, i) && markedForRemoval[px, i] == false)
                         markedForRemoval[px, i] = true;
                 }
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(i, py) & markedForRemoval[i, px] == false)
+                    if (IsJewelAt(i, py) && markedForRemoval[i, px] == false)
                         markedForRemoval[i, px] = true;
                 }
             }
@@ -1209,63 +1212,99 @@ public class GameController : MonoBehaviour
                 int py1 = UnityEngine.Random.Range(1, boardSize - 2);
                 int px2 = UnityEngine.Random.Range(1, boardSize - 2);
                 int py2 = UnityEngine.Random.Range(1, boardSize - 2);
-                markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
-                markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
+                //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
+                //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
                 for (int i = 0; i <= 4; i++)
                 {
                     //Debug.Log(i);
                     if (i == 0)
                     {
-                        if (IsJewelAt(px, py) & markedForRemoval[px, py] == false)
-                            markedForRemoval[px, py] = true;
-                        if (IsJewelAt(px1, py1) & markedForRemoval[px1, py1] == false)
-                            markedForRemoval[px1, py1] = true;
-                        if (IsJewelAt(px2, py2) & markedForRemoval[px2, py2] == false)
-                            markedForRemoval[px2, py2] = true;
+                        if (IsJewelAt(px, py))
+                        {
+                            if (markedForRemoval[px, py] == false)
+                                markedForRemoval[px, py] = true;
+                        }
+                        if (IsJewelAt(px1, py1))
+                        {
+                            if (markedForRemoval[px1, py1] == false)
+                                markedForRemoval[px1, py1] = true;
+                        }
+                        if (IsJewelAt(px2, py2))
+                        {
+                            if (markedForRemoval[px2, py2] == false)
+                                markedForRemoval[px2, py2] = true;
+                        }
                     }
                     if (i == 1)
                     {
                         //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
                         //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
-                        if (IsJewelAt(px + 1, py) & markedForRemoval[px + 1, py] == false)
-                            markedForRemoval[px + 1, py] = true;
-                        if (IsJewelAt(px1 + 1, py1) & markedForRemoval[px1 + 1, py1] == false)
-                            markedForRemoval[px1 + 1, py1] = true;
-                        if (IsJewelAt(px2 + 1, py2) & markedForRemoval[px2 + 1, py2] == false)
-                            markedForRemoval[px2 + 1, py2] = true;
+                        if (IsJewelAt(px + 1, py))
+                        {
+                            if (markedForRemoval[px + 1, py] == false)
+                                markedForRemoval[px + 1, py] = true;
+                        }
+                        if (IsJewelAt(px1 + 1, py1))
+                        {
+                            if (markedForRemoval[px1 + 1, py1] == false)
+                                markedForRemoval[px1 + 1, py1] = true;
+                        }
+                        if (IsJewelAt(px2 + 1, py2))
+                        {
+                            if (markedForRemoval[px2 + 1, py2] == false)
+                                markedForRemoval[px2 + 1, py2] = true;
+                        }
                     }
                     if (i == 2)
                     {
                         //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
                         //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
-                        if (IsJewelAt(px - 1, py) & markedForRemoval[px - 1, py] == false)
+                        if (IsJewelAt(px - 1, py) && markedForRemoval[px - 1, py] == false)
                             markedForRemoval[px - 1, py] = true;
-                        if (IsJewelAt(px1 - 1, py1) & markedForRemoval[px1 - 1, py1] == false)
+                        if (IsJewelAt(px1 - 1, py1) && markedForRemoval[px1 - 1, py1] == false)
                             markedForRemoval[px1 - 1, py1] = true;
-                        if (IsJewelAt(px2 - 1, py2) & markedForRemoval[px2 - 1, py2] == false)
+                        if (IsJewelAt(px2 - 1, py2) && markedForRemoval[px2 - 1, py2] == false)
                             markedForRemoval[px2 - 1, py2] = true;
                     }
                     if (i == 3)
                     {
                         //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
                         //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
-                        if (IsJewelAt(px, py + 1) & markedForRemoval[px, py + 1] == false)
-                            markedForRemoval[px, py + 1] = true;
-                        if (IsJewelAt(px1, py1 + 1) & markedForRemoval[px1, py1 + 1] == false)
-                            markedForRemoval[px1, py1 + 1] = true;
-                        if (IsJewelAt(px2, py2 + 1) & markedForRemoval[px2, py2 + 1] == false)
-                            markedForRemoval[px2, py2 + 1] = true;
+                        if (IsJewelAt(px, py + 1))
+                        {
+                            if (markedForRemoval[px, py + 1] == false)
+                                markedForRemoval[px, py + 1] = true;
+                        }
+                        if (IsJewelAt(px1, py1 + 1))
+                        {
+                            if (markedForRemoval[px1, py1 + 1] == false)
+                                markedForRemoval[px1, py1 + 1] = true;
+                        }
+                        if (IsJewelAt(px2, py2 + 1))
+                        {
+                            if (markedForRemoval[px2, py2 + 1] == false)
+                                markedForRemoval[px2, py2 + 1] = true;
+                        }
                     }
                     if (i == 4)
                     {
                         //markedForRemoval[swap.jewelAx, swap.jewelAy] = true;
                         //markedForRemoval[swap.jewelBx, swap.jewelBy] = true;
-                        if (IsJewelAt(px, py - 1) & markedForRemoval[px, py - 1] == false)
-                            markedForRemoval[px, py - 1] = true;
-                        if (IsJewelAt(px1, py1 - 1) & markedForRemoval[px1, py1 - 1] == false)
-                            markedForRemoval[px1, py1 - 1] = true;
-                        if (IsJewelAt(px2, py2 - 1) & markedForRemoval[px2, py2 - 1] == false)
-                            markedForRemoval[px2, py2 - 1] = true;
+                        if (IsJewelAt(px, py - 1))
+                        {
+                            if (markedForRemoval[px, py - 1] == false)
+                                markedForRemoval[px, py - 1] = true;
+                        }
+                        if (IsJewelAt(px1, py1 - 1))
+                        {
+                            if (markedForRemoval[px1, py1 - 1] == false)
+                                markedForRemoval[px1, py1 - 1] = true;
+                        }
+                        if (IsJewelAt(px2, py2 - 1))
+                        {
+                            if (markedForRemoval[px2, py2 - 1] == false)
+                                markedForRemoval[px2, py2 - 1] = true;
+                        }
                     }
                 }
             }
@@ -1298,12 +1337,12 @@ public class GameController : MonoBehaviour
             {
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(swap.jewelBx, i) & markedForRemoval[swap.jewelBx, i] == false)
+                    if (IsJewelAt(swap.jewelBx, i) && markedForRemoval[swap.jewelBx, i] == false)
                         markedForRemoval[swap.jewelBx, i] = true;
                 }
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(i, swap.jewelBy) & markedForRemoval[i, swap.jewelBy] == false)
+                    if (IsJewelAt(i, swap.jewelBy) && markedForRemoval[i, swap.jewelBy] == false)
                         markedForRemoval[i, swap.jewelBy] = true;
                 }
             }
@@ -1333,12 +1372,12 @@ public class GameController : MonoBehaviour
                 int py = UnityEngine.Random.Range(0, boardSize - 1);
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(px, i) & markedForRemoval[px, i] == false)
+                    if (IsJewelAt(px, i) && markedForRemoval[px, i] == false)
                         markedForRemoval[px, i] = true;
                 }
                 for (int i = 0; i < boardSize; i++)
                 {
-                    if (IsJewelAt(i, py) & markedForRemoval[i, px] == false)
+                    if (IsJewelAt(i, py) && markedForRemoval[i, px] == false)
                         markedForRemoval[i, px] = true;
                 }
             }
@@ -1384,12 +1423,12 @@ public class GameController : MonoBehaviour
         //    {
         //        for (int i = 0; i < boardSize; i++)
         //        {
-        //            if (IsJewelAt(swap.jewelBx, i) & markedForRemoval[swap.jewelBx, i] == false)
+        //            if (IsJewelAt(swap.jewelBx, i) && markedForRemoval[swap.jewelBx, i] == false)
         //                markedForRemoval[swap.jewelBx, i] = true;
         //        }
         //        for (int i = 0; i < boardSize; i++)
         //        {
-        //            if (IsJewelAt(i, swap.jewelBy) & markedForRemoval[i, swap.jewelBy] == false)
+        //            if (IsJewelAt(i, swap.jewelBy) && markedForRemoval[i, swap.jewelBy] == false)
         //                markedForRemoval[i, swap.jewelBy] = true;
         //        }
         //    }
@@ -1419,12 +1458,12 @@ public class GameController : MonoBehaviour
         //        int py = UnityEngine.Random.Range(0, boardSize - 1);
         //        for (int i = 0; i < boardSize; i++)
         //        {
-        //            if (IsJewelAt(px, i) & markedForRemoval[px, i] == false)
+        //            if (IsJewelAt(px, i) && markedForRemoval[px, i] == false)
         //                markedForRemoval[px, i] = true;
         //        }
         //        for (int i = 0; i < boardSize; i++)
         //        {
-        //            if (IsJewelAt(i, py) & markedForRemoval[i, px] == false)
+        //            if (IsJewelAt(i, py) && markedForRemoval[i, px] == false)
         //                markedForRemoval[i, px] = true;
         //        }
         //    }
@@ -1487,16 +1526,27 @@ public class GameController : MonoBehaviour
     /// <returns></returns>
     private int HowBigHoleAt(int x, int y, bool checkUp)
     {
-
         int length = 0;
         if (checkUp)
         {
             for (int hy = y; hy >= 0; hy--)
             {
-                GameObject ob = (GameObject)obsMapPosition[x, hy];
-                GameObject pl = (GameObject)planeMapPosition[x, hy];
-                if (!IsJewelAt(x, hy) && pl != null&&ob==null)
-                    length++;
+                GameObject ob = (GameObject)obsMapPosition[x, hy];//障碍
+                GameObject pl = (GameObject)planeMapPosition[x, hy];//面板
+                if (!IsJewelAt(x, hy))
+                {
+                    if (ob == null)
+                    {
+                        if (pl != null)
+                            length++;
+                        else
+                            break;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
                 else
                     break;
             }
@@ -1505,8 +1555,23 @@ public class GameController : MonoBehaviour
         {
             for (int hy = y; hy < boardSize; hy++)
             {
+                GameObject ob = (GameObject)obsMapPosition[x, hy];//障碍
+                GameObject pl = (GameObject)planeMapPosition[x, hy];//面板
                 if (!IsJewelAt(x, hy))
-                    length++;
+                {
+                    if (ob == null)
+                    {
+                        //if (pl != null)
+                        //    length++;
+                        //else
+                        //    break;
+                        length++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
                 else
                     break;
             }
@@ -1515,12 +1580,12 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// 掉落宝石
+    /// 掉落宝石,(x,y)是要掉落宝石的坐标
     /// </summary>
     /// <param name="x">X坐标</param>
     /// <param name="y">Y坐标</param>
     /// <param name="slots">缺口</param>
-    private void ShiftJewelsDown(int x, int y, int slots)
+    private int ShiftJewelsDown(int x, int y, int slots)
     {
         //for (int yy = y; yy >= 0; yy--)
         //{
@@ -1537,24 +1602,54 @@ public class GameController : MonoBehaviour
         //            }
         //            jewelMapPosition[x, yy] = null;
         //        }
-                
+
         //    }
         //}
-        GameObject pl = (GameObject)planeMapPosition[x, y];
-        if (pl != null)
+        /*先省略掉试试*/
+        //GameObject pl = (GameObject)planeMapPosition[x, y];
+        //if (pl != null)
+        //{
+        if (PlaneExist(x, y) && !ObsExist(x, y) && IsJewelExist(x, y))
         {
-            if (PlaneExist(x, y + slots))
+            jewelMapPosition[x, y + slots] = jewelMapPosition[x, y];
+            if (jewelMapPosition[x, y + slots] != null)
             {
-                jewelMapPosition[x, y + slots] = jewelMapPosition[x, y];
-                if (jewelMapPosition[x, y + slots] != null)
-                {
-                    Jewel objIn = jewelMapPosition[x, y].GetComponent<Jewel>();
-                    objIn.Move(3, slots);
-                }
-                jewelMapPosition[x, y] = null;
+                Jewel objIn = jewelMapPosition[x, y].GetComponent<Jewel>();
+                objIn.Move(3, slots);
             }
-
+            jewelMapPosition[x, y] = null;
         }
+        //else
+        //{
+        //    if (x < 7)//从右边的地方拉一个下来
+        //    {
+        //        if (PlaneExist(x + 1, y + slots - 1) && !ObsExist(x + 1, y + slots - 1) && IsJewelExist(x + 1, y + slots - 1))
+        //        {
+        //            jewelMapPosition[x, y + slots] = jewelMapPosition[x + 1, y + slots - 1];
+        //            if (jewelMapPosition[x, y + slots] != null)
+        //            {
+        //                Jewel objIn = jewelMapPosition[x, y + slots].GetComponent<Jewel>();
+        //                objIn.Move(5, slots);
+        //            }
+        //            jewelMapPosition[x + 1, y + slots - 1] = null;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        if (PlaneExist(x - 1, y + slots - 1) && !ObsExist(x - 1, y + slots - 1) && IsJewelExist(x - 1, y + slots - 1))
+        //        {
+        //            jewelMapPosition[x, y + slots] = jewelMapPosition[x - 1, y + slots - 1];
+        //            if (jewelMapPosition[x, y + slots] != null)
+        //            {
+        //                Jewel objIn = jewelMapPosition[x, y + slots].GetComponent<Jewel>();
+        //                objIn.Move(6, slots);
+        //            }
+        //            jewelMapPosition[x - 1, y + slots - 1] = null;
+        //        }
+        //    }
+        //}
+        return slots;
+        //}
     }
     /// <summary>
     /// 判断当前坐标下是否存在面板
@@ -1586,8 +1681,8 @@ public class GameController : MonoBehaviour
         if (x < 0 || y < 0 || x > boardSize - 1 || y > boardSize - 1) return false;
         else
         {
-            GameObject pl = (GameObject)obsMapPosition[x, y];
-            if (pl == null)
+            GameObject ob = (GameObject)obsMapPosition[x, y];
+            if (ob == null)
                 return false;
             else
                 return true;
@@ -1604,51 +1699,50 @@ public class GameController : MonoBehaviour
             for (int y = boardSize - 1; y > 0; y--)
             {	// search for holes
                 GameObject pl = (GameObject)planeMapPosition[x, y];
-                int add=0,abb = 0;
-                if (!IsJewelAt(x, y) && pl != null)
+                GameObject ob = (GameObject)obsMapPosition[x, y];
+                int slotsd;
+                if (!IsJewelAt(x, y) && pl != null && ob == null)
                 { 				//如果存在缺口计算缺口有多深
                     int slots = HowBigHoleAt(x, y, true);
                     totalSlots += slots;
                     y -= slots;
-                    if (PlaneExist(x, y))
-                    {
-                        ShiftJewelsDown(x, y, slots); 		// 在已知的缺口中掉落每一个宝石
-                    }
-                    else
-                    {
-                        if (y >0)
-                        {
-                            while (PlaneExist(x, y) == false )
-                            {
-                                add++;
-                                y = y - 1;
-                                if (PlaneExist(x, y) )
-                                {
-                                    while (IsJewelAt(x, y) == false)
-                                    {
-                                        if (y > 0)
-                                        {
-                                            abb++;
-                                            y = y - 1;
-                                        }
-                                        else
-                                        {
-                                            break;
-                                        }
-                                    }
-                                    ShiftJewelsDown(x, y, slots + add + abb);
-                                }
-                            }
-                        }
-                    }
-                    if (add != 0)
-                    {
-                        y = y + add + slots + abb;
-                    }
-                    else
-                    {
-                        y += slots;
-                    }
+                    slotsd = ShiftJewelsDown(x, y, slots); 		// 在已知的缺口中掉落每一个宝石
+                    y += slotsd;
+                    //else
+                    //{
+                    //    if (y >0)
+                    //    {
+                    //        while (PlaneExist(x, y) == false )
+                    //        {
+                    //            add++;
+                    //            y = y - 1;
+                    //            if (PlaneExist(x, y)&&!ObsExist(x,y))
+                    //            {
+                    //                while (IsJewelAt(x, y) == false)
+                    //                {
+                    //                    if (y > 0)
+                    //                    {
+                    //                        abb++;
+                    //                        y = y - 1;
+                    //                    }
+                    //                    else
+                    //                    {
+                    //                        break;
+                    //                    }
+                    //                }
+                    //                ShiftJewelsDown(x, y, slots + add + abb);
+                    //            }
+                    //        }
+                    //    }
+                    //}
+                    //if (add != 0)
+                    //{
+                    //    y = y + add + slots + abb;
+                    //}
+                    //else
+                    //{
+                    //    y += slots;
+                    //}
 
                     needToCheckCascades = true;
                 }
@@ -1750,7 +1844,7 @@ public class GameController : MonoBehaviour
     public void RemoveJewelAt(int x, int y)
     {
         if (!IsJewelAt(x, y)) return;
-        if (x >= 0 && x < boardSize && y >= 0 && y < boardSize&&PlaneExist(x,y))
+        if (x >= 0 && x < boardSize && y >= 0 && y < boardSize && PlaneExist(x, y))
         {
             GameObject j = (GameObject)jewelMapPosition[x, y];
             jewelMapPosition[x, y] = null;
@@ -1758,11 +1852,50 @@ public class GameController : MonoBehaviour
             jj.Die();
             jewelRemains.Add(j);
             totalRemovedJewels++;
+            RemoveObs(x, y);
+        }
+    }
+
+    /// <summary>
+    /// 消除当前坐标下的宝石
+    /// </summary>
+    /// <param name="x">X坐标</param>
+    /// <param name="y">Y坐标</param>
+    public void RemoveObs(int x, int y)
+    {
+        if (ObsExist(x + 1, y))
+        {
+            GameObject o = (GameObject)obsMapPosition[x+1, y];
+            obsMapPosition[x+1, y] = null;
+            obstracle ob = o.gameObject.GetComponent<obstracle>();//获取到obstracle脚本
+            ob.Die();
+        }
+        if (ObsExist(x - 1, y))
+        {
+            GameObject o = (GameObject)obsMapPosition[x - 1, y];
+            obsMapPosition[x - 1, y] = null;
+            obstracle ob = o.gameObject.GetComponent<obstracle>();//获取到obstracle脚本
+            ob.Die();
+        }
+        if (ObsExist(x, y + 1))
+        {
+            GameObject o = (GameObject)obsMapPosition[x, y + 1];
+            obsMapPosition[x, y + 1] = null;
+            obstracle ob = o.gameObject.GetComponent<obstracle>();//获取到obstracle脚本
+            ob.Die();
+        }
+        if (ObsExist(x, y - 1))
+        {
+            GameObject o = (GameObject)obsMapPosition[x, y - 1];
+            obstracle ob = o.gameObject.GetComponent<obstracle>();//获取到obstracle脚本
+            ob.Die();
+            obsMapPosition[x, y - 1] = null;
         }
     }
 
     /// <summary>
     /// 更新宝石状态
+    /// 
     /// </summary>
     public void UpdateJewelRemains()
     {
@@ -1840,13 +1973,13 @@ public class GameController : MonoBehaviour
             for (int x = 0; x < boardSize; x++)
             {
                 //判断该位置可放置，水平前一个位置可放置并且二者tag相同
-                if (IsJewelAt(x, y) && IsJewelAt(x - 1, y) && IsJewelAt(x, y - 1) && IsJewelAt(x - 1, y - 1) && (jewelMapPosition[x, y].tag == jewelMapPosition[x - 1, y].tag) && (jewelMapPosition[x - 1, y].tag == jewelMapPosition[x, y - 1].tag) && (jewelMapPosition[x, y - 1].tag == jewelMapPosition[x - 1, y - 1].tag))
+                if (IsJewelAt(x, y) && IsJewelAt(x - 1, y) && IsJewelAt(x, y - 1) && IsJewelAt(x - 1, y - 1) && (jewelMapPosition[x, y].tag == jewelMapPosition[x - 1, y].tag)
+                    && (jewelMapPosition[x - 1, y].tag == jewelMapPosition[x, y - 1].tag) && (jewelMapPosition[x, y - 1].tag == jewelMapPosition[x - 1, y - 1].tag))
                 {
                     counter = 4;
                     if (counter == 4 && jewelMapPosition[x, y].tag != "Rock")
                     {
                         triple = 6;					//当前存在方块消情况、triple计数为6
-
                     }
                 }
                 else
@@ -2062,11 +2195,11 @@ public class GameController : MonoBehaviour
     /// 消除连3情况(主动消除)
     /// </summary>
     /// <returns></returns>
-    private int RemoveTriplets()
+    private int RemoveTriplets(int count)
     {
-        int triplets = CountMatch3();
+        int triplets = count;
         if (triplets == 0) return 0;			// 消除完成
-        //创建一个二维数组来存在当前位置是否可以消除
+        //创建一个二维数组来记录当前位置是否可以消除
         bool[,] markedForRemoval = new bool[boardSize, boardSize];
 
         #region 横向连3消除
@@ -2245,7 +2378,7 @@ public class GameController : MonoBehaviour
                     if (counter == 4 && jewelMapPosition[x, y].tag != "Rock")
                     {
                         startsAt = y;
-                        SquareMade = true; 
+                        SquareMade = true;
                         SquareMadeCount++;
                         GameObject j = (GameObject)jewelMapPosition[x, y];
                         Jewel jj = j.gameObject.GetComponent<Jewel>();
@@ -2280,7 +2413,7 @@ public class GameController : MonoBehaviour
                     RemoveJewelAt(x, y);
             }
         }
-
+        #region 在消除位置生成特殊宝石
         if (SquareMade == true)
         {
             if (jellytype != -1 && jellySpetype != -1)
@@ -2336,7 +2469,7 @@ public class GameController : MonoBehaviour
             GameObject j = (GameObject)jewelMapPosition[swapping.jewelBx, swapping.jewelBy];
             jewelRemains.Remove(j);
         }
-
+        #endregion
         needToDropJewels = true;
         delayDrop = 0.3f;
         canSwap = false;
@@ -2543,7 +2676,8 @@ public class GameController : MonoBehaviour
 
             for (int x = 0; x < boardSize; x++)
             {
-                if (IsJewelAt(x, y) && IsJewelAt(x - 1, y) && IsJewelAt(x, y - 1) && IsJewelAt(x - 1, y - 1) && (jewelMapPosition[x, y].tag == jewelMapPosition[x - 1, y].tag) && (jewelMapPosition[x - 1, y].tag == jewelMapPosition[x, y - 1].tag) && (jewelMapPosition[x, y - 1].tag == jewelMapPosition[x - 1, y - 1].tag))
+                if (IsJewelAt(x, y) && IsJewelAt(x - 1, y) && IsJewelAt(x, y - 1) && IsJewelAt(x - 1, y - 1) && (jewelMapPosition[x, y].tag == jewelMapPosition[x - 1, y].tag)
+                    && (jewelMapPosition[x - 1, y].tag == jewelMapPosition[x, y - 1].tag) && (jewelMapPosition[x, y - 1].tag == jewelMapPosition[x - 1, y - 1].tag))
                 {
                     counter = 4;
                     if (counter == 4 && jewelMapPosition[x, y].tag != "Rock")
@@ -2588,7 +2722,7 @@ public class GameController : MonoBehaviour
                     RemoveJewelAt(x, y);
             }
         }
-        #region 特殊宝石生成
+        #region 消除位置特殊宝石生成
         //生成方块特殊宝石
         if (SquareMade == true)
         {
@@ -2596,6 +2730,7 @@ public class GameController : MonoBehaviour
             {
                 for (int i = 0; i < SquareJewels.Count; i++)
                 {
+
                     MadeSpe(Convert.ToInt32(SquareJewels[i].transform.localPosition.x), Convert.ToInt32(SquareJewels[i].transform.localPosition.y), jellytype, jellySpetype);
                     GameObject j = (GameObject)jewelMapPosition[Convert.ToInt32(SquareJewels[i].transform.localPosition.x), Convert.ToInt32(SquareJewels[i].transform.localPosition.y)];
                     jewelRemains.Remove(j);
@@ -2783,81 +2918,34 @@ public class GameController : MonoBehaviour
     /// <param name="spetype">特殊种类</param>
     void MadeSpe(int x, int y, int type, int spetype)
     {
-        //方块消
-        if (spetype == 2)
+        if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
         {
-            if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
+            GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
+            //获取到宝石后实例化一个宝石预设体
+            GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
+            switch (spetype)
             {
-                GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
-                //获取到宝石后实例化一个宝石预设体
-                GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
-                jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsSqu");
-                Material mm = jewelPrefab.GetComponent<Renderer>().material;
-                String name = mm.mainTexture.name;
-                jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
-                jewelPrefab.transform.parent = TheBoard;
-                jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
+                case 0://横4
+                    jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsH");
+                    break;
+                case 1://连5
+                    jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsFive");
+                    break;
+                case 2://方块
+                    jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsSqu");
+                    break;
+                case 3://TL
+                    jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsTL");
+                    break;
+                case 4://纵4
+                    jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsV");
+                    break;
             }
-        }
-        //连4消横
-        if (spetype == 0)
-        {
-            if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
-            {
-                GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
-                //获取到宝石后实例化一个宝石预设体
-                GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
-                jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsH");
-                Material mm = jewelPrefab.GetComponent<Renderer>().material;
-                jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
-                jewelPrefab.transform.parent = TheBoard;
-                jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
-            }
-        }
-        //连4消纵
-        if (spetype == 4)
-        {
-            if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
-            {
-                GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
-                //获取到宝石后实例化一个宝石预设体
-                GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
-                jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsV");
-                Material mm = jewelPrefab.GetComponent<Renderer>().material;
-                jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
-                jewelPrefab.transform.parent = TheBoard;
-                jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
-            }
-        }
-        //连5消
-        if (spetype == 1)
-        {
-            if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
-            {
-                GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
-                //获取到宝石后实例化一个宝石预设体
-                GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
-                jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsFive");
-                Material mm = jewelPrefab.GetComponent<Renderer>().material;
-                jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
-                jewelPrefab.transform.parent = TheBoard;
-                jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
-            }
-        }
-        //TL消
-        if (spetype == 3)
-        {
-            if (IsJewelExist(x, y) == false && jewelMapPosition[x, y] == null)
-            {
-                GameObject objectType1 = jewelsSpe[type];//随机添加一个宝石
-                //获取到宝石后实例化一个宝石预设体
-                GameObject jewelPrefab = (GameObject)Instantiate(objectType1, new Vector3(x, y, 0), jewels[0].transform.localRotation);
-                jewelPrefab.GetComponent<Renderer>().material.mainTexture = (Texture2D)Resources.Load("Textures/Jewels/JewelsTL");
-                Material mm = jewelPrefab.GetComponent<Renderer>().material;
-                jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
-                jewelPrefab.transform.parent = TheBoard;
-                jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
-            }
+            Material mm = jewelPrefab.GetComponent<Renderer>().material;
+            String name = mm.mainTexture.name;
+            jewelMapPosition[x, y] = jewelPrefab;//放入对应坐标
+            jewelPrefab.transform.parent = TheBoard;
+            jewelPrefab.transform.localPosition = new Vector3(x, y, 0);
         }
     }
     /// <summary>
@@ -2909,7 +2997,7 @@ public class GameController : MonoBehaviour
         {
             for (int i = 0; i < boardSize; i++)
             {
-                if (IsJewelAt(i, y) & markedForRemoval[i, y] == false)
+                if (IsJewelAt(i, y) && markedForRemoval[i, y] == false)
                     markedForRemoval[i, y] = true;
             }
         }
@@ -2918,7 +3006,7 @@ public class GameController : MonoBehaviour
         {
             for (int i = 0; i < boardSize; i++)
             {
-                if (IsJewelAt(x, i) & markedForRemoval[x, i] == false)
+                if (IsJewelAt(x, i) && markedForRemoval[x, i] == false)
                     markedForRemoval[x, i] = true;
             }
         }
@@ -2933,8 +3021,8 @@ public class GameController : MonoBehaviour
                 {
                     if (IsJewelAt(px, py))
                     {
-                        if(markedForRemoval[px, py] == false)
-                        markedForRemoval[px, py] = true;
+                        if (markedForRemoval[px, py] == false)
+                            markedForRemoval[px, py] = true;
                     }
                     else
                         continue;
@@ -2943,8 +3031,8 @@ public class GameController : MonoBehaviour
                 {
                     if (IsJewelAt(px + 1, py))
                     {
-                        if(markedForRemoval[px + 1, py] == false)
-                        markedForRemoval[px + 1, py] = true;
+                        if (markedForRemoval[px + 1, py] == false)
+                            markedForRemoval[px + 1, py] = true;
                     }
                     else
                         continue;
@@ -2953,8 +3041,8 @@ public class GameController : MonoBehaviour
                 {
                     if (IsJewelAt(px - 1, py))
                     {
-                        if( markedForRemoval[px - 1, py] == false)
-                        markedForRemoval[px - 1, py] = true;
+                        if (markedForRemoval[px - 1, py] == false)
+                            markedForRemoval[px - 1, py] = true;
                     }
                     else
                         continue;
@@ -2962,9 +3050,9 @@ public class GameController : MonoBehaviour
                 if (i == 3)
                 {
                     if (IsJewelAt(px, py + 1))
-                    { 
+                    {
                         if (markedForRemoval[px, py + 1] == false)
-                        markedForRemoval[px, py + 1] = true;
+                            markedForRemoval[px, py + 1] = true;
                     }
                     else
                         continue;

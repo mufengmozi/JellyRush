@@ -74,6 +74,7 @@
     <Compile Include="Assets\Match3Sample\Scripts\Jewel.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\MessageMatch.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\XMLHelper.cs" />
+    <Compile Include="Assets\Match3Sample\Scripts\obstracle.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Match3Sample\Fonts\TextShader.shader" />
