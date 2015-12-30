@@ -132,7 +132,7 @@ public class GameController : MonoBehaviour
     /// </summary>
     public static GameObject[,] jewelMapPosition;  //Hold's the jewels virtual position 
     public static GameObject[,] planeMapPosition;  //Hold's the plane virtual position 
-    public static GameObject[,] obsMapPosition;//Hold's the obstruction virtual position
+    public static GameObject[,] obsMapPosition;    //Hold's the obstruction virtual position
     private struct theSwap
     {				//helper for the swap I grab this part of the code from some websites
         public bool twiceClick;				//handles the double click
@@ -183,6 +183,7 @@ public class GameController : MonoBehaviour
     void Start()
     {
         Reset();
+        Debug.Log(PlayerPrefs.GetInt("Level"));
     }
     /// <summary>
     /// 面板状态展示
@@ -222,6 +223,11 @@ public class GameController : MonoBehaviour
         }
     }
 
+    void adapt()
+    {
+        GameObject cam = GameObject.Find("Main Camera");
+    }
+
     /// <summary>
     /// 定义面板
     /// </summary>
@@ -253,7 +259,6 @@ public class GameController : MonoBehaviour
         FiveJewels = new List<GameObject>(16);
         SquareJewels = new List<GameObject>(16);
         TLJewels = new List<GameObject>(16);
-
         // Randomize the jewels
         do
         {

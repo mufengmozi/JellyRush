@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<levels>
+  <level id="0" name="level0" unlock="1"  /><!--1为已解锁、0为未解锁-->
+  <level id="1" name="level1" unlock="0"  />
+  <level id="2" name="level2" unlock="0"  />
+  <level id="3" name="level3" unlock="0"  />
+  <level id="4" name="level4" unlock="0"  />
+</levels>

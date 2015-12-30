@@ -39,7 +39,19 @@ using System.Text;
             {
                 return false;
             }
+        }
 
+        /// <summary>
+        /// 获取该节点下的所有属性
+        /// </summary>
+        /// <param name="Notepath">节点名称</param>
+        /// <returns>XmlNodeList</returns>
+        public static XmlNodeList FindAttrAll(string XMLPath, string Notepath)
+        {
+            XmlDocument xmldoc = CheckFileExit(XMLPath);
+            XmlElement root = xmldoc.DocumentElement;
+            XmlNodeList levelsNode = root.SelectNodes(Notepath);
+            return levelsNode;
         }
 
         /// <summary>
@@ -165,7 +177,6 @@ using System.Text;
             myDoc.InsertAfter(newnode, first);
             //调用insertAfter节点只要要插入节点的父节点(可以是祖先节点),引用节点必须要插入节点的兄弟节点。
             myDoc.Save(XMLFile);
-
         }
 
         /// <summary>
