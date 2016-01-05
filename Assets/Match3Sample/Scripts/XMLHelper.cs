@@ -73,6 +73,32 @@ using System.Text;
         }
 
         /// <summary>
+        /// 根据两个节点名称获取节点的值
+        /// </summary>
+        /// <param name="XMLPath">XML文件位置</param>
+        /// <param name="pName">父节点名称</param>
+        /// <param name="Name">子节点名称</param>
+        /// <returns>子节点内的值</returns>
+        public static string FindByName(string XMLPath,string pName, string Name)
+        {
+            XmlDocument xmldoc = CheckFileExit(XMLPath);
+            XmlElement root = xmldoc.DocumentElement;
+            foreach (XmlNode node in root.ChildNodes)
+            {
+                if (node.Name == pName)
+                {
+                    foreach (XmlNode xmlNode in node.ChildNodes)
+                    {
+                        if (xmlNode.Name == Name)
+
+                            return xmlNode.InnerText;
+                    }
+                }
+            }
+            return "";
+        }
+
+        /// <summary>
         /// 根据单一节点的名字以及属性的名字获取其属性的值
         /// </summary>
         /// <param name="Name"></param>
@@ -88,6 +114,33 @@ using System.Text;
                     XmlElement elem = xmldoc.GetElementById(NoteName);
                     string str = xmlNode.Attributes[AttrName].Value;
                     return str;
+                }
+            }
+            return "";
+        }
+
+        /// <summary>
+        /// 根据单一节点的名字以及属性的名字获取其属性的值
+        /// </summary>
+        /// <param name="Name"></param>
+        /// <returns></returns>
+        public static string FindAttrByName(string XMLPath, string NotePName, string NoteName, string AttrName)
+        {
+            XmlDocument xmldoc = CheckFileExit(XMLPath);
+            XmlElement root = xmldoc.DocumentElement;
+            foreach (XmlNode xmlNode in root.ChildNodes)
+            {
+                if (xmlNode.Name == NotePName)
+                {
+                    foreach (XmlNode cNode in xmlNode.ChildNodes)
+                    {
+                        if (cNode.Name == NoteName)
+                        {
+                            XmlElement elem = xmldoc.GetElementById(NoteName);
+                            string str = xmlNode.Attributes[AttrName].Value;
+                            return str;
+                        }
+                    }
                 }
             }
             return "";
@@ -133,7 +186,30 @@ using System.Text;
                 Values += node.InnerText.ToString() + ";";
             }
             return Values.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        }
 
+        /// <summary>
+        /// 从指定的XML文件中读取指定路径下第一级节点集合
+        /// </summary>
+        /// <param name="XMLFile">带路径的XML文件名</param>
+        /// <param name="Path">带路径的结点名</param>
+        /// <returns></returns>
+        public static string[] ReadNodesName(string XMLFile, string Path)
+        {
+            string Values = "";
+            if (CheckFileExit(XMLFile) == null)
+            {
+                throw new Exception("指定的文件不存在！");
+                return null;
+            }
+
+            XmlDocument xmldoc = CheckFileExit(XMLFile);
+            XmlNode Node = FindNode(xmldoc, Path);
+            foreach (XmlNode node in Node.ChildNodes)
+            {
+                Values += node.Name.ToString() + ";";
+            }
+            return Values.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
         }
 
         /// <summary>

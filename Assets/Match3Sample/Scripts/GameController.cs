@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine.UI;
+using StageBound;
 
 
 public class GameController : MonoBehaviour
@@ -177,6 +178,8 @@ public class GameController : MonoBehaviour
 
     GameObject Can; //得到ugui中canvas并进行操纵
 
+    List<Stage> stagelist;
+
     /// <summary>
     /// 程序入口
     /// </summary>
@@ -233,8 +236,10 @@ public class GameController : MonoBehaviour
     /// </summary>
     public void Reset()
     {
-        xmlpath = Application.dataPath + "/Match3Sample/Scripts/GateCon.xml";
+        stagelist = StageBind.LoadLevels();
         Can = GameObject.Find("Canvas");
+        Bindbg();
+        xmlpath = Application.dataPath + "/Match3Sample/Scripts/GateCon.xml";
         if (boardSize < 3) boardSize = 8;
         theBoardState = BState.RESETING;
         jewelMapPosition = new GameObject[boardSize, boardSize];
@@ -269,6 +274,28 @@ public class GameController : MonoBehaviour
         while ((movesLeft = HowManyMovesLeft()) == 0);
 
         theBoardState = BState.PLAYING;
+    }
+    /// <summary>
+    /// 
+    /// </summary>
+    private void Bindbg()
+    {
+        Text[] title = Can.GetComponentsInChildren<Text>();
+        for (int i = 0; i < title.Length; i++)
+        {
+            switch (title[i].name)
+            {
+                case "Title":
+                    title[i].text = stagelist[0].GateName.Trim();
+                    break;
+                case "target_text":
+                    title[i].text = stagelist[0].TargetPoint.Trim();
+                    break;
+                case "score_text":
+                    title[i].text = "0";
+                    break;
+            }
+        }
     }
     /// <summary>
     /// 定义好面板后开始给里边填充宝石

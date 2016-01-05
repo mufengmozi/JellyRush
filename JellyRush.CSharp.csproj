@@ -13,13 +13,11 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile>
-    </CompilerResponseFile>
+    <CompilerResponseFile></CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>Android:13</UnityBuildTarget>
     <UnityVersion>5.2.2f1</UnityVersion>
-    <RootNamespace>
-    </RootNamespace>
+    <RootNamespace></RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -79,6 +77,9 @@
     <Compile Include="Assets\Match3Sample\Scripts\GameController.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\Jewel.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\MessageMatch.cs" />
+    <Compile Include="Assets\Match3Sample\Scripts\Program.cs" />
+    <Compile Include="Assets\Match3Sample\Scripts\Stage.cs" />
+    <Compile Include="Assets\Match3Sample\Scripts\StageBind.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\XMLHelper.cs" />
     <Compile Include="Assets\Match3Sample\Scripts\obstracle.cs" />
     <Compile Include="Assets\Open\resources\script\MainContral.cs" />
@@ -86,9 +87,8 @@
   <ItemGroup>
     <None Include="Assets\Level\resource\script\levels.xml" />
     <None Include="Assets\Match3Sample\Fonts\TextShader.shader" />
-    <None Include="Assets\Match3Sample\Scripts\GateCon.xml">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="Assets\Match3Sample\Scripts\GateCon.xml" />
+    <None Include="Assets\Match3Sample\Scripts\Stage\Stage1.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2013\UnityVS.CSharp.targets" />
 </Project>
